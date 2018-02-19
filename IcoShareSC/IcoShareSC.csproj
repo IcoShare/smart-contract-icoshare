@@ -50,6 +50,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="IcoShareSC.chain">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="IcoShareSC.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
