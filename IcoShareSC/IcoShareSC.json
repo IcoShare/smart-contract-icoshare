@@ -1,11 +1,11 @@
 ﻿{
 	"contract": {
 		"params": "0710",
-    "inputs": [
+    "inputs": [ 
       {
         "name": "StartNewIcoShare",
         "params": [
-          "StartNewIcoShare",
+          "startNewIcoShare",
           [ "bdf067b8-1908-45e7-84ea-4412a3603e79", "5d7d82d4ebf8a24a3fcbc2f228c37687d474d0a6", 1514764800, 1515196800, 100, 1, 10 ]
         ]
       },
@@ -13,7 +13,7 @@
       {
         "name": "SendContribution",
         "params": [
-          "SendContribution",
+          "sendContribution",
           [ "bdf067b8-1908-45e7-84ea-4412a3603e79" ]
         ]
       }

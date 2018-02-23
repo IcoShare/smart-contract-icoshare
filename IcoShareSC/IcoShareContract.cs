@@ -24,9 +24,9 @@ namespace IcoShareSC
         public static readonly char POSTFIX_CONTRIBUTEDSHARES = 'I';
         public static readonly char POSTFIX_TOKENHASH = 'J';
 
-        public static readonly byte[] ACTIVE = { 31, 32 };
-        public static readonly byte[] FUNDED = { 32, 33 };
-        public static readonly byte[] NOTFUNDED = { 33, 34 };
+        public static readonly string ACTIVE = "ACTIVE";
+        public static readonly string FUNDED = "FUNDED";
+        public static readonly string NOTFUNDED = "NOTFUNDED";
 
         private const int IcoShareIdLenght = 36;
         private const int SenderAddresLenght = 34;
@@ -53,7 +53,7 @@ namespace IcoShareSC
         }
         private static bool IsOwner()
         {
-            return true;
+            return true; //TODO : Fix this when release
             //return Runtime.CheckWitness(Owner);
         }
         private static byte[] GetReceiver()
@@ -79,22 +79,40 @@ namespace IcoShareSC
         }
 
         //Storage related
+        private static byte[] GetFromStorage(string storageKey, char postfix)
+        {
+            string k = storageKey + postfix;
+            var value = Storage.Get(Storage.CurrentContext, k.AsByteArray());
+            Runtime.Notify(k, value);
+            return value;
+        }
         private static byte[] GetFromStorage(byte[] storageKey, char postfix)
         {
             string k = storageKey.AsString() + postfix;
-            return Storage.Get(Storage.CurrentContext, k.AsByteArray());
+            var value = Storage.Get(Storage.CurrentContext, k.AsByteArray());
+            Runtime.Notify(k, value);
+            return value;
         }
         private static byte[] GetFromStorage(byte[] storageKey)
         {
-            return Storage.Get(Storage.CurrentContext, storageKey);
+            var value = Storage.Get(Storage.CurrentContext, storageKey);
+            Runtime.Notify(storageKey, value);
+            return value;
         }
-
-        private static byte[][] GetListFromStorage(byte[] storageKey, char postfix, int listItemSize)
+        private static byte[] GetFromStorage(string storageKey)
         {
-            byte[] key = (storageKey.AsString() + postfix).AsByteArray();
-            return GetListFromStorage(key, listItemSize);
+            var value = Storage.Get(Storage.CurrentContext, storageKey);
+            Runtime.Notify(storageKey, value);
+            return value;
         }
-        private static byte[][] GetListFromStorage(byte[] storageKey, int listItemSize)
+        private static byte[][] GetListFromStorage(string storageKey, char postfix, int listItemSize)
+        {
+            var key = storageKey + postfix;
+            var value = GetListFromStorage(key, listItemSize);
+            Runtime.Notify(key, value);
+            return value;
+        }
+        private static byte[][] GetListFromStorage(string storageKey, int listItemSize)
         {
             byte[] storageItem = GetFromStorage(storageKey);
             if (storageItem == null || storageItem.Length == 0) return null;
@@ -114,6 +132,11 @@ namespace IcoShareSC
             return liste;
         }
 
+        private static void PutOnStorage(string storageKey, BigInteger value)
+        {
+            Runtime.Notify(storageKey, value + 0);
+            Storage.Put(Storage.CurrentContext, storageKey, value);
+        }
         private static void PutOnStorage(byte[] storageKey, BigInteger value)
         {
             Runtime.Notify(storageKey, value + 0);
@@ -124,19 +147,45 @@ namespace IcoShareSC
             Runtime.Notify(storageKey, value);
             Storage.Put(Storage.CurrentContext, storageKey, value);
         }
-
+        private static void PutOnStorage(string storageKey, byte[] value)
+        {
+            Runtime.Notify(storageKey, value);
+            Storage.Put(Storage.CurrentContext, storageKey, value);
+        }
         private static void PutOnStorage(byte[] storageKey, char postfix, BigInteger value)
         {
             string k = string.Concat(storageKey.AsString(), postfix);
             Storage.Put(Storage.CurrentContext, k.AsByteArray(), value);
-
             Runtime.Notify(k, value + 0);
+        }
+        private static void PutOnStorage(byte[] storageKey, char postfix, string value)
+        {
+            string k = string.Concat(storageKey.AsString(), postfix);
+            Storage.Put(Storage.CurrentContext, k.AsByteArray(), value);
+            Runtime.Notify(k, value + 0);
+        }
+        private static void PutOnStorage(string storageKey, char postfix, BigInteger value)
+        {
+            string k = string.Concat(storageKey, postfix);
+            Storage.Put(Storage.CurrentContext, k.AsByteArray(), value);
+            Runtime.Notify(k, value + 0);
+        }
+        private static void PutOnStorage(string storageKey, char postfix, byte[] value)
+        {
+            string k = string.Concat(storageKey, postfix);
+            Storage.Put(Storage.CurrentContext, k.AsByteArray(), value);
+            Runtime.Notify(k, value);
+        }
+        private static void PutOnStorage(string storageKey, char postfix, string value)
+        {
+            string k = string.Concat(storageKey, postfix);
+            Storage.Put(Storage.CurrentContext, k.AsByteArray(), value);
+            Runtime.Notify(k, value);
         }
         private static void PutOnStorage(byte[] storageKey, char postfix, byte[] value)
         {
             string k = string.Concat(storageKey.AsString(), postfix);
             Storage.Put(Storage.CurrentContext, k.AsByteArray(), value);
-
             Runtime.Notify(k, value);
         }
         /// <summary>
@@ -145,7 +194,7 @@ namespace IcoShareSC
         /// <param name="storageKey"></param>
         /// <param name="postfix"></param>
         /// <param name="value"></param>
-        private static void PutItemOnStorageList(byte[] storageKey, char postfix, byte[] value, int listItemSize)
+        private static void PutItemOnStorageList(string storageKey, char postfix, byte[] value, int listItemSize)
         {
             var list = GetListFromStorage(storageKey, postfix, listItemSize);
 
@@ -175,7 +224,7 @@ namespace IcoShareSC
             return array.AsBigInteger() + 0;
         }
 
-        private static byte[] MultiKey(params byte[][] keys)
+        private static string MultiKey(params byte[][] keys)
         {
             string temp = keys[0].AsString();
 
@@ -184,7 +233,18 @@ namespace IcoShareSC
                 temp = string.Concat(temp, "_", keys[i].AsString());
             }
 
-            return temp.AsByteArray();
+            return temp;
+        }
+        private static string MultiKey(params string[] keys)
+        {
+            string temp = keys[0];
+
+            for (int i = 1; i < keys.Length; i++)
+            {
+                temp = string.Concat(temp, "_", keys[i]);
+            }
+
+            return temp;
         }
         private static bool IsEquel(byte[] value1, byte[] value2)
         {
@@ -204,26 +264,25 @@ namespace IcoShareSC
 
         #region Events
 
-        //[DisplayName("funded")]
-        //public static event Action<byte[]> Funded;
-        //[DisplayName("refund")]
-        //public static event Action<byte[], BigInteger> Refund;
+        [DisplayName("funded")]
+        public static event Action<byte[]> Funded;
+        [DisplayName("refund")]
+        public static event Action<byte[], BigInteger> Refund;
 
         private static void OnRefund(byte[] address, BigInteger amount)
         {
-            //if (Refund != null) Refund(address, amount);
-            Runtime.Notify("REFUND".AsByteArray(), address, amount.AsByteArray());
+            Refund(address, amount);
         }
         private static void OnFunded(byte[] icoShareId)
         {
-            //if (Funded != null) Funded(icoShareId);
-            Runtime.Notify("FUNDED".AsByteArray(), icoShareId);
+            Funded(icoShareId);
         }
         #endregion
 
         public static Object Main(string operation, params object[] args)
         {
-            //
+            Runtime.Notify("Operation", operation);
+
             if (Runtime.Trigger == TriggerType.Verification)
             {
                 //Get invoker address
@@ -231,11 +290,11 @@ namespace IcoShareSC
                 //Allow/Reject withdrawal
             }
 
-            if (operation == "StartNewIcoShare") return StartNewIcoShare(
-                (byte[])args[0], (byte[])args[1],
+            if (operation == "startNewIcoShare") return StartNewIcoShare(
+                (string)args[0], (string)args[1],
                 (BigInteger)args[2], (BigInteger)args[3],
                 (BigInteger)args[4], (BigInteger)args[5], (BigInteger)args[6]);
-            if (operation == "SendContribution") return SendContribution((byte[])args[0]);
+            if (operation == "sendContribution") return SendContribution((string)args[0]);
 
             //Not supported opetation, refund 
             RefundContributedValue();
@@ -244,7 +303,7 @@ namespace IcoShareSC
 
         //START NEW ICO
         public static bool StartNewIcoShare(
-            byte[] icoShareId, byte[] tokenScriptHash,
+            string icoShareId, string tokenScriptHash,
             BigInteger startTime, BigInteger endTime,
             BigInteger contributionBundle, BigInteger minContribution, BigInteger maxContribution)
         {
@@ -252,12 +311,12 @@ namespace IcoShareSC
             if (icoShareId.Length != IcoShareIdLenght || endTime < Now() || endTime < startTime) return false;
 
             //Check if id already used
-            var existingId = GetFromStorage(icoShareId);
+            var existingId = GetFromStorage(icoShareId, POSTFIX_STATUS);
             if (existingId != null) return false;
 
             //Set Ico Share Info
             PutOnStorage(icoShareId, POSTFIX_STATUS, ACTIVE);
-            PutOnStorage(icoShareId, POSTFIX_TOKENHASH, tokenScriptHash);
+            PutOnStorage(icoShareId, POSTFIX_TOKENHASH, tokenScriptHash.AsByteArray());
             PutOnStorage(icoShareId, POSTFIX_STARTDATE, startTime);
             PutOnStorage(icoShareId, POSTFIX_ENDDATE, endTime);
             PutOnStorage(icoShareId, POSTFIX_BUNDLE, contributionBundle);
@@ -269,40 +328,40 @@ namespace IcoShareSC
         }
 
         //SEND CONTRIBUTION
-        public static bool SendContribution(byte[] icoShareId)
+        public static bool SendContribution(string icoShareId)
         {
             //Sender's address
             byte[] sender = GetSender();
 
             //Contribute asset is not neo
-            if (sender.Length == 0)
-                return false;
+            if (sender.Length == 0) return false;
 
             //Get contribution value
             BigInteger contributeValue = GetContributeValue();
             if (contributeValue == 0) return false;
+            Runtime.Notify("Contributed value", contributeValue);
 
-            //Check if IcoShare funded
-            var isIcoShareFunded = GetFromStorage(icoShareId, POSTFIX_STATUS);
-            if (!IsEquel(isIcoShareFunded, ACTIVE))
-            {
-                OnRefund(sender, contributeValue);
-                return false;
-            }
+            ////Check if IcoShare funded
+            //var isIcoShareFunded = GetFromStorage(icoShareId, POSTFIX_STATUS).AsString();
+            //if (isIcoShareFunded != ACTIVE)
+            //{
+            //    OnRefund(sender, contributeValue);
+            //    return false;
+            //}
 
-            //Check enddate
-            BigInteger endDate = GetFromStorage(icoShareId, POSTFIX_ENDDATE).AsBigInteger();
-            if (endDate < Now())
-            {
-                OnRefund(sender, contributeValue);
-                return false;
-            }
+            ////Check enddate
+            //BigInteger endDate = GetFromStorage(icoShareId, POSTFIX_ENDDATE).AsBigInteger();
+            //if (endDate < Now())
+            //{
+            //    OnRefund(sender, contributeValue);
+            //    return false;
+            //}
 
             //IcoShare details 
-            BigInteger icoShareCurrentAmount = GetFromStorage(icoShareId, POSTFIX_CURRENTCONT).AsBigInteger();
-            BigInteger icoShareBundle = GetFromStorage(icoShareId, POSTFIX_BUNDLE).AsBigInteger();
-            BigInteger icoShareMax = GetFromStorage(icoShareId, POSTFIX_MAXCONT).AsBigInteger();
-            BigInteger sendersCurrentCont = GetFromStorage(MultiKey(icoShareId, sender)).AsBigInteger();
+            BigInteger icoShareCurrentAmount = GetFromStorage(icoShareId, POSTFIX_CURRENTCONT).AsBigInteger();  Runtime.Notify("icoShareCurrentAmount", icoShareCurrentAmount +0);
+            BigInteger icoShareBundle = GetFromStorage(icoShareId, POSTFIX_BUNDLE).AsBigInteger();                  Runtime.Notify("icoShareBundle", icoShareBundle +0);
+            BigInteger icoShareMax = GetFromStorage(icoShareId, POSTFIX_MAXCONT).AsBigInteger();                    Runtime.Notify("icoShareMax", icoShareMax + 0);
+            BigInteger sendersCurrentCont = GetFromStorage(MultiKey(icoShareId, sender.AsString())).AsBigInteger(); Runtime.Notify("sendersCurrentCont", sendersCurrentCont + 0);
 
             //Decide to the contribution
             BigInteger contribution = 0;
@@ -310,7 +369,9 @@ namespace IcoShareSC
             //Check maximum contribution for sender
             if (sendersCurrentCont + contributeValue > icoShareMax)
             {
-                //User reached to his/her maximum, refund more than icoShareMax
+                Runtime.Notify(sendersCurrentCont, contributeValue, sendersCurrentCont + contributeValue, icoShareMax);
+                Runtime.Notify("User reached to his/her maximum, refund more than icoShareMax");
+
                 var calc = icoShareMax - sendersCurrentCont;
 
                 BigInteger refundAmount = contributeValue - calc;
@@ -338,6 +399,7 @@ namespace IcoShareSC
 
                 if (contribution == 0) return false;
             }
+            Runtime.Notify("Contribution", contribution);
 
             //Add/Update user's current contribution
             if (sendersCurrentCont > 0)
@@ -351,15 +413,16 @@ namespace IcoShareSC
                 PutOnStorage(MultiKey(icoShareId, sender), contribution.AsByteArray());
 
                 //Add to icoshare's contributors
-                PutItemOnStorageList(icoShareId, POSTFIX_CONTRIBUTORS, sender, SenderAddresLenght);
+                PutItemOnStorageList(icoShareId.AsString(), POSTFIX_CONTRIBUTORS, sender, SenderAddresLenght);
 
                 //Add to contributor's icoShare list
-                PutItemOnStorageList(sender, POSTFIX_CONTRIBUTEDSHARES, icoShareId, IcoShareIdLenght);
+                PutItemOnStorageList(sender.AsString(), POSTFIX_CONTRIBUTEDSHARES, icoShareId, IcoShareIdLenght);
             }
 
             //Update IcoShare's current value
             BigInteger icoShareNewAmount = icoShareCurrentAmount + contribution;
             PutOnStorage(icoShareId, POSTFIX_CURRENTCONT, icoShareNewAmount.AsByteArray());
+            Runtime.Notify("IcoShare's new amount", icoShareNewAmount);
 
             //Check if IcoShare completed 
             if (icoShareNewAmount == icoShareBundle)
@@ -385,7 +448,7 @@ namespace IcoShareSC
 
             //Get contibutor list 
             var key = string.Concat(icoShareId.AsString(), POSTFIX_CONTRIBUTORS);
-            var contributors = GetListFromStorage(key.AsByteArray(), SenderAddresLenght);
+            var contributors = GetListFromStorage(key, SenderAddresLenght);
 
             //Refund every contribution
             for (int i = 0; i < contributors.Length; i++)
@@ -403,7 +466,7 @@ namespace IcoShareSC
         public bool DistributeNep5Tokens(byte[] icoShareId)
         {
             if (!IsOwner()) return false;
-            if (GetFromStorage(icoShareId, POSTFIX_STATUS) != FUNDED)
+            if (GetFromStorage(icoShareId, POSTFIX_STATUS).AsString() != FUNDED)
             {
                 //TODO : Refun Nep5Token 
                 return false;
