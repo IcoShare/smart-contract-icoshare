@@ -3,30 +3,36 @@ using Neo.SmartContract.Framework.Services.Neo;
 using Neo.SmartContract.Framework.Services.System;
 using System;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 
 namespace IcoShareSC
 {
+    [SuppressMessage("ReSharper", "ForCanBeConvertedToForeach")]
+    [SuppressMessage("ReSharper", "SuggestVarOrType_BuiltInTypes")]
+    [SuppressMessage("ReSharper", "SuggestVarOrType_SimpleTypes")]
     public class IcoShareContract : SmartContract
     {
         #region Private fields
         //private static byte[] Owner = "AK2nJJpJr6o664CWJKi1QRXjqeic2zRp8y".ToScriptHash();
         private static readonly byte[] NeoAssetId = { 155, 124, 255, 218, 166, 116, 190, 174, 15, 147, 14, 190, 96, 133, 175, 144, 147, 229, 254, 86, 179, 74, 92, 34, 12, 205, 207, 110, 252, 51, 111, 197 };
+        private const ulong NeoDecimals = 100000000;
 
-        public static readonly char POSTFIX_STATUS = 'A';
-        public static readonly char POSTFIX_STARTDATE = 'B';
-        public static readonly char POSTFIX_ENDDATE = 'C';
-        public static readonly char POSTFIX_BUNDLE = 'D';
-        public static readonly char POSTFIX_MINCONT = 'E';
-        public static readonly char POSTFIX_MAXCONT = 'F';
-        public static readonly char POSTFIX_CURRENTCONT = 'G';
-        public static readonly char POSTFIX_CONTRIBUTORS = 'H';
-        public static readonly char POSTFIX_CONTRIBUTEDSHARES = 'I';
-        public static readonly char POSTFIX_TOKENHASH = 'J';
+        public static readonly char PostfixStatus = 'A';
+        public static readonly char PostfixStartdate = 'B';
+        public static readonly char PostfixEnddate = 'C';
+        public static readonly char PostfixBundle = 'D';
+        public static readonly char PostfixMincont = 'E';
+        public static readonly char PostfixMaxcont = 'F';
+        public static readonly char PostfixCurrentcont = 'G';
+        public static readonly char PostfixContributors = 'H';
+        public static readonly char PostfixContributedshares = 'I';
+        public static readonly char PostfixTokenhash = 'J';
 
         public static readonly string ACTIVE = "ACTIVE";
         public static readonly string FUNDED = "FUNDED";
         public static readonly string NOTFUNDED = "NOTFUNDED";
+        public static readonly string DISTRUBUTED = "DISTRUBUTED";
 
         private const int IcoShareIdLenght = 36;
         private const int SenderAddresLenght = 34;
@@ -36,7 +42,7 @@ namespace IcoShareSC
         private static BigInteger Now()
         {
             uint now = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
-            now += 15; //TODO : ???
+            now += 15; 
             return now;
         }
         private static byte[] GetSender()
@@ -51,11 +57,6 @@ namespace IcoShareSC
             }
             return new byte[0];
         }
-        private static bool IsOwner()
-        {
-            return true; //TODO : Fix this when release
-            //return Runtime.CheckWitness(Owner);
-        }
         private static byte[] GetReceiver()
         {
             return ExecutionEngine.ExecutingScriptHash;
@@ -68,9 +69,7 @@ namespace IcoShareSC
             // get the total amount of Neo
             foreach (TransactionOutput output in outputs)
             {
-                if (
-                    //IsEquel(output.ScriptHash, GetReceiver()) && //TODO : Commented for now, this produces false with neo-debugger
-                    IsEquel(output.AssetId, NeoAssetId))
+                if (IsEquel(output.ScriptHash, GetReceiver()) && IsEquel(output.AssetId, NeoAssetId))
                 {
                     value += (ulong)output.Value;
                 }
@@ -83,13 +82,13 @@ namespace IcoShareSC
         {
             string k = storageKey + postfix;
             var value = Storage.Get(Storage.CurrentContext, k.AsByteArray());
-            Runtime.Notify(k, value);
+            //Runtime.Notify(k, value);
             return value;
         }
         private static byte[] GetFromStorage(string storageKey)
         {
             var value = Storage.Get(Storage.CurrentContext, storageKey);
-            Runtime.Notify(storageKey, value);
+            //Runtime.Notify(storageKey, value);
             return value;
         }
         private static byte[][] GetListFromStorage(string storageKey, int listItemSize)
@@ -114,20 +113,20 @@ namespace IcoShareSC
 
         private static void PutOnStorage(string storageKey, byte[] value)
         {
-            Runtime.Notify(storageKey, value);
+            //Runtime.Notify(storageKey, value);
             Storage.Put(Storage.CurrentContext, storageKey, value);
         }
         private static void PutOnStorage(string storageKey, char postfix, BigInteger value)
         {
             string k = string.Concat(storageKey, postfix);
             Storage.Put(Storage.CurrentContext, k.AsByteArray(), value);
-            Runtime.Notify(k, value + 0);
+            //Runtime.Notify(k, value + 0);
         }
         private static void PutOnStorage(string storageKey, char postfix, string value)
         {
             string k = string.Concat(storageKey, postfix);
             Storage.Put(Storage.CurrentContext, k.AsByteArray(), value);
-            Runtime.Notify(k, value);
+            //Runtime.Notify(k, value);
         }
         private static void PutItemOnStorageList(string storageKey, char postfix, byte[] value, int listItemSize)
         {
@@ -169,10 +168,10 @@ namespace IcoShareSC
         private static void RefundContributedValue()
         {
             byte[] sender = GetSender();
-            ulong contribute_value = GetContributeValue();
-            if (contribute_value > 0 && sender.Length != 0)
+            ulong contributedValue = GetContributeValue();
+            if (contributedValue > 0 && sender.Length != 0)
             {
-                OnRefund(sender, contribute_value);
+                OnRefund(sender, contributedValue);
             }
         }
         #endregion
@@ -198,90 +197,108 @@ namespace IcoShareSC
         {
             Runtime.Notify("Operation", operation);
 
-            if (Runtime.Trigger == TriggerType.Verification)
-            {
-                //Get invoker address
-                //Check if invoker can withdraw that amount 
-                //Allow/Reject withdrawal
-            }
-
-            if (operation == "startNewIcoShare") return StartNewIcoShare(
-                (string)args[0], (string)args[1],
-                (BigInteger)args[2], (BigInteger)args[3],
-                (BigInteger)args[4], (BigInteger)args[5], (BigInteger)args[6]);
-            if (operation == "sendContribution") return SendContribution((string)args[0]);
-
+            if (operation == "startNewIcoShare") return StartNewIcoShare(args);
+            if (operation == "sendContribution") return SendContribution(args);
+            if (operation == "getCurrentContribution") return GetCurrentContribution((string)args[0]);
+            
             //Not supported opetation, refund 
             RefundContributedValue();
             return false;
         }
 
         //START NEW ICO
-        public static bool StartNewIcoShare(
-            string icoShareId, string tokenScriptHash,
-            BigInteger startTime, BigInteger endTime,
-            BigInteger contributionBundle, BigInteger minContribution, BigInteger maxContribution)
+        public static bool StartNewIcoShare(object[] args)
         {
+            string icoShareId  = (string)args[0];
+            string tokenScriptHash = (string) args[1];
+            BigInteger startTime = (BigInteger)args[2];
+            BigInteger endTime = (BigInteger) args[3];
+            BigInteger contributionBundle = (BigInteger) args[4];
+            BigInteger minContribution = (BigInteger) args[5];
+            BigInteger maxContribution = (BigInteger)args[6];
+            Runtime.Notify(maxContribution +0);
+
             //Check parameters
-            if (icoShareId.Length != IcoShareIdLenght || endTime < Now() || endTime < startTime) return false;
+            if (icoShareId.Length != IcoShareIdLenght ) return false;
+            if (endTime < Now()) return false;
+            if (endTime < startTime) return false;
 
             //Check if id already used
-            var existingId = GetFromStorage(icoShareId, POSTFIX_STATUS);
+            var existingId = GetFromStorage(icoShareId, PostfixStatus);
             if (existingId != null) return false;
 
             //Set Ico Share Info
-            PutOnStorage(icoShareId, POSTFIX_STATUS, ACTIVE);
-            PutOnStorage(icoShareId, POSTFIX_TOKENHASH, tokenScriptHash);
-            PutOnStorage(icoShareId, POSTFIX_STARTDATE, startTime);
-            PutOnStorage(icoShareId, POSTFIX_ENDDATE, endTime);
-            PutOnStorage(icoShareId, POSTFIX_BUNDLE, contributionBundle);
-            PutOnStorage(icoShareId, POSTFIX_MINCONT, minContribution);
-            PutOnStorage(icoShareId, POSTFIX_MAXCONT, maxContribution);
-            PutOnStorage(icoShareId, POSTFIX_CURRENTCONT, 0);
+            PutOnStorage(icoShareId, PostfixStatus, ACTIVE);
+            PutOnStorage(icoShareId, PostfixTokenhash, tokenScriptHash);
+            PutOnStorage(icoShareId, PostfixStartdate, startTime+0);
+            PutOnStorage(icoShareId, PostfixEnddate, endTime+0);
+            PutOnStorage(icoShareId, PostfixBundle, contributionBundle+0);
+            PutOnStorage(icoShareId, PostfixMincont, minContribution+0);
+            PutOnStorage(icoShareId, PostfixMaxcont, maxContribution+0);
+            PutOnStorage(icoShareId, PostfixCurrentcont, 0);
 
             return true;
         }
 
         //SEND CONTRIBUTION
-        public static bool SendContribution(string icoShareId)
+        public static bool SendContribution(object[] args)
         {
+            string icoShareId = (string) args[0];
+            Runtime.Notify((string)args[0]);
+
             //Sender's address
             byte[] sender = GetSender();
 
             //Contribute asset is not neo
             if (sender.Length == 0) return false;
 
-            //Get contribution value
-            BigInteger contributeValue = GetContributeValue();
+            //Get contribution value 
+            BigInteger contributeValue = GetContributeValue() / NeoDecimals;
             if (contributeValue == 0) return false;
             Runtime.Notify("Contributed value", contributeValue);
 
-            ////Check if IcoShare funded
-            //var isIcoShareFunded = GetFromStorage(icoShareId, POSTFIX_STATUS).AsString();
-            //if (isIcoShareFunded != ACTIVE)
-            //{
-            //    OnRefund(sender, contributeValue);
-            //    return false;
-            //}
+            //Check if IcoShare funded
+            var isIcoShareFunded = GetFromStorage(icoShareId, PostfixStatus).AsString();
+            if (isIcoShareFunded != ACTIVE)
+            {
+                OnRefund(sender, contributeValue);
+                return false;
+            }
 
-            ////Check enddate
-            //BigInteger endDate = GetFromStorage(icoShareId, POSTFIX_ENDDATE).AsBigInteger();
-            //if (endDate < Now())
-            //{
-            //    OnRefund(sender, contributeValue);
-            //    return false;
-            //}
+            //Check enddate
+            BigInteger endDate = GetFromStorage(icoShareId, PostfixEnddate).AsBigInteger();
+            if (endDate < Now())
+            {
+                OnRefund(sender, contributeValue);
+                return false;
+            }
 
             //IcoShare details 
-            BigInteger icoShareCurrentAmount = GetFromStorage(icoShareId, POSTFIX_CURRENTCONT).AsBigInteger();  Runtime.Notify("icoShareCurrentAmount", icoShareCurrentAmount +0);
-            BigInteger icoShareBundle = GetFromStorage(icoShareId, POSTFIX_BUNDLE).AsBigInteger();                  Runtime.Notify("icoShareBundle", icoShareBundle +0);
-            BigInteger icoShareMax = GetFromStorage(icoShareId, POSTFIX_MAXCONT).AsBigInteger();                    Runtime.Notify("icoShareMax", icoShareMax + 0);
-            BigInteger sendersCurrentCont = GetFromStorage(MultiKey(icoShareId.AsByteArray(), sender)).AsBigInteger(); Runtime.Notify("sendersCurrentCont", sendersCurrentCont + 0);
+            BigInteger icoShareCurrentAmount = GetFromStorage(icoShareId, PostfixCurrentcont).AsBigInteger();
+            Runtime.Notify("icoShareCurrentAmount", icoShareCurrentAmount +0);
+
+            BigInteger icoShareBundle = GetFromStorage(icoShareId, PostfixBundle).AsBigInteger();
+            Runtime.Notify("icoShareBundle", icoShareBundle +0);
+
+            BigInteger icoShareMax = GetFromStorage(icoShareId, PostfixMaxcont).AsBigInteger();
+            Runtime.Notify("icoShareMax", icoShareMax + 0);
+
+            BigInteger icoShareMin = GetFromStorage(icoShareId, PostfixMincont).AsBigInteger();
+            Runtime.Notify("icoShareMax", icoShareMin + 0);
+
+            BigInteger sendersCurrentCont = GetFromStorage(MultiKey(icoShareId.AsByteArray(), sender)).AsBigInteger();
+            Runtime.Notify("sendersCurrentCont", sendersCurrentCont + 0);
 
             //Decide to the contribution
             BigInteger contribution = 0;
 
             //Check maximum contribution for sender
+            if (contributeValue < icoShareMin)
+            {
+                OnRefund(sender, contributeValue);
+                return false;
+            }
+
             if (sendersCurrentCont + contributeValue > icoShareMax)
             {
                 Runtime.Notify(sendersCurrentCont, contributeValue, sendersCurrentCont + contributeValue, icoShareMax);
@@ -294,23 +311,19 @@ namespace IcoShareSC
 
                 contribution = calc;
             }
-            else
-            {
-                contribution = contributeValue;
-            }
+            else contribution = contributeValue;
 
             //Check if IcoShare current amount reaches full
             if (icoShareCurrentAmount + contribution > icoShareBundle)
             {
                 //User reached to icoShare bundle amount, refund more than icoShareBundle
-
-                var calc = icoShareBundle - icoShareCurrentAmount;
+                var available = icoShareBundle - icoShareCurrentAmount;
 
                 //Refund 
-                BigInteger refund = contribution - calc;
-                OnRefund(sender, refund);
+                BigInteger refund = contribution - available;
 
-                contribution = calc;
+                OnRefund(sender, refund); //Refund the amount more than avilable
+                contribution = available; //Override contribution amount 
 
                 if (contribution == 0) return false;
             }
@@ -328,21 +341,21 @@ namespace IcoShareSC
                 PutOnStorage(MultiKey(icoShareId.AsByteArray(), sender), contribution.AsByteArray());
 
                 //Add to icoshare's contributors
-                PutItemOnStorageList(icoShareId.AsByteArray().AsString(), POSTFIX_CONTRIBUTORS, sender, SenderAddresLenght);
+                PutItemOnStorageList(icoShareId.AsByteArray().AsString(), PostfixContributors, sender, SenderAddresLenght);
 
                 //Add to contributor's icoShare list
-                PutItemOnStorageList(sender.AsString(), POSTFIX_CONTRIBUTEDSHARES, icoShareId.AsByteArray(), IcoShareIdLenght);
+                PutItemOnStorageList(sender.AsString(), PostfixContributedshares, icoShareId.AsByteArray(), IcoShareIdLenght);
             }
 
             //Update IcoShare's current value
             BigInteger icoShareNewAmount = icoShareCurrentAmount + contribution;
-            PutOnStorage(icoShareId, POSTFIX_CURRENTCONT, icoShareNewAmount);
+            PutOnStorage(icoShareId, PostfixCurrentcont, icoShareNewAmount);
             Runtime.Notify("IcoShare's new amount", icoShareNewAmount);
 
             //Check if IcoShare completed 
             if (icoShareNewAmount == icoShareBundle)
             {
-                PutOnStorage(icoShareId, POSTFIX_STATUS, FUNDED);
+                PutOnStorage(icoShareId, PostfixStatus, FUNDED);
                 OnFunded(icoShareId.AsByteArray());
             }
 
@@ -352,19 +365,25 @@ namespace IcoShareSC
         //GET CURRENT CONTRIBUTION
         public static BigInteger GetCurrentContribution(string icoShareId)
         {
-            return GetFromStorage(icoShareId, POSTFIX_CURRENTCONT).AsBigInteger();
+            return GetFromStorage(icoShareId, PostfixCurrentcont).AsBigInteger();
         }
 
         //REFUND, ICOSHARE IS UNSUCCESFULL
-        //Invoked by owner when time limit reached
         public static bool RefundUnsuccesfullIcoShare(string icoShareId)
         {
-            if (!IsOwner()) return false;
+            //Check end date
+            BigInteger endDate = GetFromStorage(icoShareId, PostfixEnddate).AsBigInteger(); Runtime.Notify("EndDate", endDate);
+            var status = GetFromStorage(icoShareId, PostfixStatus).AsString(); Runtime.Notify("Status", status);
 
+            //Refund option is not active. 
+            if (status == FUNDED) return false; //Already Funded
+            if (endDate > Now() && status == ACTIVE) return false; //Still active
+
+            //REFUND
             //Get contibutor list 
-            var key = string.Concat(icoShareId, POSTFIX_CONTRIBUTORS);
-            var contributors = GetListFromStorage(key, SenderAddresLenght);
-            Runtime.Notify("Contributors", contributors);
+            var key = string.Concat(icoShareId, PostfixContributors);
+            var contributors = GetListFromStorage(key, SenderAddresLenght); Runtime.Notify("Contributors", contributors);
+
             //Refund every contribution
             for (int i = 0; i < contributors.Length; i++)
             {
@@ -373,38 +392,10 @@ namespace IcoShareSC
             }
 
             //Cancel IcoShare
-            PutOnStorage(icoShareId, POSTFIX_STATUS, NOTFUNDED);
+            PutOnStorage(icoShareId, PostfixStatus, NOTFUNDED);
 
             return true;
         }
-
-        public bool DistributeNep5Tokens(string icoShareId)
-        {
-            if (!IsOwner()) return false;
-            if (GetFromStorage(icoShareId, POSTFIX_STATUS).AsString() != FUNDED)
-            {
-                //TODO : Refun Nep5Token 
-                return false;
-            }
-
-            //Get icoShare details  
-
-            //Get contributed Nep5Token details 
-
-            //Distribute to contributers' addresses
-
-            return true;
-        }
-
-        public void GetToken()
-        {
-            //Get token script hash, 
-
-            //Get token amount 
-
-            //Find ico share by token script hash
-
-            //Distribute tokens 
-        }
+        
     }
 }
