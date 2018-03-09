@@ -60,6 +60,7 @@
     <None Include="build.tasks" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="InvokeParams.txt" />
     <Content Include="Neo.ConvertTask.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

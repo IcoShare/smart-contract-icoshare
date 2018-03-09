@@ -1,0 +1,14 @@
+﻿StartNewIcoShare [1000, 100, 5000, 1538323200, 1506787200, "ceab719b8baa2310f232ee0d277c061704541cfb", "0be516e4-5ba1-498d-8b60-118f4ba5e896"]
+GetCurrentContribution ["0be516e4-5ba1-498d-8b60-118f4ba5e896"]
+SendContribution ["0be516e4-5ba1-498d-8b60-118f4ba5e896"]
+
+//Public Key - Private Key
+AVtWrcKebAagGDgheTTkQMsVbNJSqHkcg9 a147901ddb4f3e0ab4e95202b16dc5f8e8527872f1506c964d411c593198becb
+AHE4vQpguVvNnf3GinAkae1Rx6K1gKcz51 a261abc4217eb78b6b321fb301d46ca61ddf2d3c3ab4c80043b0e174e99b288a 
+
+//Sample ico share ids
+8940a777-be9c-4735-b88c-c42b326aec05
+7f7fc201-a54f-4082-a4d1-344ca34400f8
+163d09db-b38b-4dfa-a267-3c2c9680d18d
+ac9f3580-fa42-4b78-bf75-7a38d9b56e88
+1ab6067a-eb28-4e1c-8c28-d0054467f46e
