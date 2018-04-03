@@ -1,4 +1,4 @@
-#ICO Share Smart Contract
+# ICO Share Smart Contract
 
 Some ICOs may require minimum amount to participate or some others offer bundles with related token distribution factor.
 
